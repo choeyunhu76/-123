@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>탄소 화합물 퀴즈</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;background:linear-gradient(135deg,#eef6ff,#f8f4ff);color:#172033}
+  .wrap{max-width:760px;margin:0 auto;padding:24px 16px 40px}
+  .card{background:white;border-radius:24px;padding:28px;box-shadow:0 10px 35px #00000012}
+  h1{margin:0 0 8px;font-size:28px}
+  .sub{color:#667085;margin-bottom:22px}
+  .progress{height:9px;background:#e9edf3;border-radius:9px;overflow:hidden;margin:15px 0 25px}
+  .bar{height:100%;width:0%;background:#5b67e8;transition:.25s}
+  .label{font-size:14px;color:#667085}
+  .desc{font-size:20px;line-height:1.65;font-weight:700;background:#f7f8fc;border-radius:16px;padding:20px;margin:12px 0 22px}
+  .desc ul{margin:0;padding-left:22px}
+  .choices{display:grid;gap:10px}
+  button.choice{border:2px solid #e1e5ec;background:white;border-radius:14px;padding:14px 16px;font-size:16px;text-align:left;cursor:pointer;transition:.15s}
+  button.choice:hover{border-color:#7b83ee;background:#f7f7ff}
+  button.choice.selected{border-color:#5b67e8;background:#eef0ff}
+  button.choice.correct{border-color:#20a464;background:#eafaf2}
+  button.choice.wrong{border-color:#e25555;background:#fff0f0}
+  .section-title{font-weight:800;margin:20px 0 9px}
+  .formula{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .actions{display:flex;gap:10px;margin-top:22px}
+  .mainbtn{flex:1;border:0;border-radius:14px;padding:15px;background:#5b67e8;color:white;font-size:17px;font-weight:800;cursor:pointer}
+  .mainbtn:disabled{background:#c8cbd5;cursor:not-allowed}
+  .next{display:none}
+  .feedback{min-height:25px;margin-top:16px;font-weight:800}
+  .result{text-align:center}
+  .score{font-size:54px;font-weight:900;margin:15px 0}
+  .small{color:#667085}
+  @media(max-width:520px){.card{padding:20px}.desc{font-size:17px}h1{font-size:24px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card" id="quizCard">
+    <h1>🧪 탄소 화합물 퀴즈</h1>
+    <div class="sub">설명을 읽고 <b>이름 + 분자식</b>을 맞혀보세요.</div>
+    <div class="label" id="counter"></div>
+    <div class="progress"><div class="bar" id="bar"></div></div>
+    <div class="desc"><ul id="description"></ul></div>
+
+    <div class="section-title">① 화합물 이름</div>
+    <div class="choices" id="nameChoices"></div>
+
+    <div class="section-title">② 분자식</div>
+    <div class="choices" id="formulaChoices"></div>
+
+    <div class="feedback" id="feedback"></div>
+    <div class="actions">
+      <button class="mainbtn" id="check" onclick="checkAnswer()">정답 확인</button>
+      <button class="mainbtn next" id="next" onclick="nextQuestion()">다음 문제 →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const data = [
+ {name:"메테인", formula:"CH₄", d:["가장 간단한 탄화수소","액화 천연 가스의 주성분","가정에서 난방과 취사에 이용","버스 연료로 이용"]},
+ {name:"메탄알", formula:"HCHO", d:["상온에서 기체, 자극적인 냄새","수용액은 방부작용, 생물표본방부제로 이용","플라스틱이나 가구용 접착제의 원료"]},
+ {name:"메탄올", formula:"CH₃OH", d:["상온에서 액체, 물에 녹아 중성","휘발성, 가연성","연소하면 이산화탄소와 물이 생성","인체에 흡수되면 유독한 물질인 포름알데히드가 만들어짐"]},
+ {name:"메탄산", formula:"HCOOH", d:["상온에서 액체, 물에 녹아 산성","벌과 개미의 침에 포함된 독성물질","가죽·사료의 방부제로 사용"]},
+ {name:"에탄올", formula:"C₂H₅OH", d:["상온에서 액체, 물에 녹아 중성","휘발성, 가연성","연소하면 이산화탄소와 물이 생성","술의 성분","살균작용, 소독용 알코올로 이용"]},
+ {name:"에탄산", formula:"CH₃COOH", d:["겨울철 상온에서 고체","수용액은 산성, 신맛, 식초의 성분","아스피린과 같은 의약품의 원료","유기용매로 이용"]},
+ {name:"에테인", formula:"C₂H₆", d:["천연 가스로부터 생산, 정유 과정의 부산물","상온에서 기체","에틸렌의 원료"]},
+ {name:"프로판올", formula:"C₃H₇OH", d:["상온에서 액체, 물에 녹아 중성","에탄올보다 휘발성이 약함","연소 시 그을음과 냄새가 발생하여 연료로 잘 사용하지 않음","다양한 물질의 용매로 사용"]},
+ {name:"프로페인", formula:"C₃H₈", d:["석유 증류 시 가스에 포함","프로펜, 부텐, 펜텐 등과 함께 액화 석유 가스의 성분"]},
+ {name:"에탄알", formula:"CH₃CHO", d:["체내에서 에탄올이 변화되어 생기며 숙취의 원인"]},
+ {name:"프로판산", formula:"C₂H₅COOH", d:["상온에서 액체, 물에 녹아 산성","아세트산에 비해 물에 대한 용해도가 낮음","사료나 식품의 방부제","고분자 합성이나 살충제·의약품의 제조 원료"]},
+ {name:"프로판알", formula:"C₂H₅CHO", d:["상온에서 액체, 자극적인 냄새","인체에 노출 시 폐나 눈을 자극","향료, 알키드 수지 합성 재료"]}
+];
+
+let questions=[...data].sort(()=>Math.random()-.5), idx=0, score=0, answered=false;
+const names=data.map(x=>x.name), formulas=data.map(x=>x.formula);
+
+function pick(arr, correct, n=3){
+ let a=arr.filter(x=>x!==correct).sort(()=>Math.random()-.5).slice(0,n);
+ return [...a,correct].sort(()=>Math.random()-.5);
+}
+function render(){
+ answered=false;
+ const q=questions[idx];
+ document.getElementById("counter").textContent=`문제 ${idx+1} / ${questions.length}`;
+ document.getElementById("bar").style.width=((idx/questions.length)*100)+"%";
+ document.getElementById("description").innerHTML=q.d.map(x=>`<li>${x}</li>`).join("");
+ makeChoices("nameChoices",pick(names,q.name),"name");
+ makeChoices("formulaChoices",pick(formulas,q.formula),"formula");
+ document.getElementById("feedback").textContent="";
+ document.getElementById("check").style.display="block";
+ document.getElementById("next").style.display="none";
+}
+function makeChoices(id, arr, type){
+ const box=document.getElementById(id);
+ box.innerHTML="";
+ arr.forEach(v=>{
+   const b=document.createElement("button");
+   b.className="choice";
+   b.textContent=v;
+   b.dataset.type=type; b.dataset.value=v;
+   b.onclick=()=>{if(answered)return; [...box.children].forEach(x=>x.classList.remove("selected")); b.classList.add("selected");};
+   box.appendChild(b);
+ });
+}
+function checkAnswer(){
+ if(answered)return;
+ const q=questions[idx];
+ const n=document.querySelector('#nameChoices .selected');
+ const f=document.querySelector('#formulaChoices .selected');
+ if(!n || !f){document.getElementById("feedback").textContent="⚠️ 이름과 분자식을 모두 선택해 주세요.";return;}
+ answered=true;
+ const ok=n.dataset.value===q.name && f.dataset.value===q.formula;
+ if(ok){score++; document.getElementById("feedback").textContent="✅ 정답!"; document.getElementById("feedback").style.color="#16824e";}
+ else{document.getElementById("feedback").innerHTML=`❌ 오답! 정답은 <b>${q.name}</b> (${q.formula})`; document.getElementById("feedback").style.color="#c43d3d";}
+ [...document.querySelectorAll(".choice")].forEach(b=>{
+   if(b.dataset.value===q.name || b.dataset.value===q.formula)b.classList.add("correct");
+ });
+ document.getElementById("check").style.display="none";
+ document.getElementById("next").style.display="block";
+ document.getElementById("next").textContent=idx===questions.length-1?"결과 보기 →":"다음 문제 →";
+}
+function nextQuestion(){
+ if(idx<questions.length-1){idx++;render();}
+ else showResult();
+}
+function showResult(){
+ document.getElementById("quizCard").innerHTML=`
+ <div class="result">
+   <h1>🎉 퀴즈 완료!</h1>
+   <div class="score">${score} / ${questions.length}</div>
+   <div class="sub">${score===questions.length?"완벽해요! 🔥":score>=9?"아주 잘했어요! 👍":score>=6?"조금만 더 복습하면 돼요! 💪":"설명과 분자식을 다시 복습해봐요! 📚"}</div>
+   <button class="mainbtn" onclick="location.reload()">다시 풀기</button>
+ </div>`;
+}
+render();
+</script>
+</body>
+</html>
